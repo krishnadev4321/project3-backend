@@ -13,7 +13,7 @@ blocked_ips = {}  # IPs blocked with unblock timestamp
 GEMINI_API_KEY = "AIzaSyBHyiMX-EZwVo4G_NSOGGMu4itjKoguRmA"
 GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={GEMINI_API_KEY}"
 
-abusive_keywords = ['sex', 'xxx', 'gandi', 'gaali', 'badword1', 'badword2']
+abusive_keywords = ['sex', 'xxx', 'mardarchod', 'betichod', 'bsdk', 'sexy']
 
 def contains_abuse(text):
     lower_text = text.lower()
