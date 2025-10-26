@@ -3,30 +3,37 @@ from flask_cors import CORS
 import requests
 
 app = Flask(__name__)
-CORS(app)  # CORS enable kar rahe hain taki frontend se request aaye toh block na ho
+CORS(app)
 
-# Gemini API ki key yahan dalein
+USER_REQUEST_LIMIT = 20
+user_request_counts = {}
+
 GEMINI_API_KEY = "AIzaSyBHyiMX-EZwVo4G_NSOGGMu4itjKoguRmA"
 GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={GEMINI_API_KEY}"
 
 @app.route('/chat', methods=['POST'])
 def chat():
+    user_ip = request.remote_addr
+    print(f"User IP: {user_ip}")
+
+    count = user_request_counts.get(user_ip, 0)
+    if count >= USER_REQUEST_LIMIT:
+        return jsonify({"reply": "Aapki daily request limit poori ho chuki hai. Kal phir try karein."}), 429
+
+    user_request_counts[user_ip] = count + 1
+
     data = request.json
     message = data.get("message", "")
     if not message:
-        return jsonify({"reply": "Please message bhejein."}), 400
+        return jsonify({"reply": "Message bhejna zaroori hai."}), 400
 
-    # Customized prompt jisme website ke baare me mention hai
     prompt_text = f"""
     Tum ek helpful assistant ho jo BCA Guide website ke baare me baat karoge.
-    Ye website notes, purane question papers (PYQs), syllabus, Assignment templates , aur bhi study materials provide karti hai.
+    Ye website notes, purane question papers (PYQs), syllabus, Assignment templates, aur bhi study materials provide karti hai.
     User ka question hai: "{message}"
     Kripya karke chhota aur seedha jawaab dein, jisme website ki materials aur download ke options ka zikr ho.
-    aur agar User jis bhi language me baat karega to tum bhi ussi language me baat karoge .
-    aur agar user kisi language ka code manga hai to tume usse code bhi doge and 
-    message bahut hi chota and relevant dena
-    And Sabse important baat agar tumse koi puche ki tumhe kisne banaya hai yaaa kon develope kiya hai to tum bataoge mujhe Krishna Seth ne banaya hai main ek Smart Ai huun jo har question ke answer de sakta hai.
-    aur agar koi puche ki tum kon ho then tum bata dena main Ek Ai huun .
+    Aur agar user ne koi specific language code maanga to woh bhi do.
+    Aur agar user pooche tum kon ho ya kisne banaya hai, to bolo ki Krishna Seth ne banaya hai main ek Smart AI hu.
     """
 
     payload = {
