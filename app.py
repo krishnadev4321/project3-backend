@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
 import time
+import math
 
 app = Flask(__name__)
 CORS(app)
@@ -34,9 +35,17 @@ def chat():
 
     # Check if blocked
     if user_ip in blocked_ips:
-        if time.time() < blocked_ips[user_ip]:
-            print(f"Blocked user {user_ip} tried to send message.")
-            return jsonify({"reply": "Aap block hain 6 ghante tak. Kripya baad mein fir koshish karein."}), 403
+        remaining = blocked_ips[user_ip] - time.time()
+        if remaining > 0:
+            hours = int(remaining // 3600)
+            minutes = int((remaining % 3600) // 60)
+            seconds = int(remaining % 60)
+            msg = (
+                f"Aap block hain 6 ghante tak. "
+                f"Bacha hua samay: {hours} hour {minutes} min {seconds} sec."
+            )
+            print(f"Blocked user {user_ip} tried to send message. Remaining: {msg}")
+            return jsonify({"reply": msg}), 403
         else:
             del blocked_ips[user_ip]
 
@@ -45,9 +54,10 @@ def chat():
     print(f"User Question: {message}")
 
     if contains_abuse(message):
-        blocked_ips[user_ip] = time.time() + 21600  # block for 24 hours
+        blocked_ips[user_ip] = time.time() + 21600  # 6 hours block
         print(f"User {user_ip} blocked for abuse.")
-        return jsonify({"reply": "Aapka message inappropriate tha, aapko 24 ghante ke liye block kiya gaya hai."}), 403
+        msg = "Aapka message inappropriate tha, aapko 6 ghante ke liye block kiya gaya hai. Remaining Time: 6 hour 0 min 0 sec."
+        return jsonify({"reply": msg}), 403
 
     # Check request limits
     count = user_request_counts.get(user_ip, 0)
