@@ -36,7 +36,7 @@ def chat():
     if user_ip in blocked_ips:
         if time.time() < blocked_ips[user_ip]:
             print(f"Blocked user {user_ip} tried to send message.")
-            return jsonify({"reply": "Aap block hain 24 ghante tak. Kripya baad mein fir koshish karein."}), 403
+            return jsonify({"reply": "Aap block hain 6 ghante tak. Kripya baad mein fir koshish karein."}), 403
         else:
             del blocked_ips[user_ip]
 
@@ -45,7 +45,7 @@ def chat():
     print(f"User Question: {message}")
 
     if contains_abuse(message):
-        blocked_ips[user_ip] = time.time() + 86400  # block for 24 hours
+        blocked_ips[user_ip] = time.time() + 21600  # block for 24 hours
         print(f"User {user_ip} blocked for abuse.")
         return jsonify({"reply": "Aapka message inappropriate tha, aapko 24 ghante ke liye block kiya gaya hai."}), 403
 
