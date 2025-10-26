@@ -6,14 +6,14 @@ import time
 app = Flask(__name__)
 CORS(app)
 
-USER_REQUEST_LIMIT = 20
+USER_REQUEST_LIMIT = 50
 user_request_counts = {}
 blocked_ips = {}  # IPs blocked with unblock timestamp
 
 GEMINI_API_KEY = "AIzaSyBHyiMX-EZwVo4G_NSOGGMu4itjKoguRmA"
 GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={GEMINI_API_KEY}"
 
-abusive_keywords = ['sex', 'xxx', 'gandi', 'gaali', 'badword1', 'badword2']  # ??? ?? ???? ????? ?? ?????? ??????
+abusive_keywords = ['sex', 'xxx', 'gandi', 'gaali', 'badword1', 'badword2']
 
 def contains_abuse(text):
     lower_text = text.lower()
@@ -29,26 +29,34 @@ def chat():
         user_ip = request.headers.getlist("X-Forwarded-For")[0].split(',')[0]
     else:
         user_ip = request.remote_addr
+
     print(f"User IP: {user_ip}")
 
     # Check if blocked
     if user_ip in blocked_ips:
         if time.time() < blocked_ips[user_ip]:
+            print(f"Blocked user {user_ip} tried to send message.")
             return jsonify({"reply": "Aap block hain 24 ghante tak. Kripya baad mein fir koshish karein."}), 403
         else:
             del blocked_ips[user_ip]
 
-    if contains_abuse(request.json.get("message", "")):
+    # Check abuse content
+    message = request.json.get("message", "")
+    print(f"User Question: {message}")
+
+    if contains_abuse(message):
         blocked_ips[user_ip] = time.time() + 86400  # block for 24 hours
+        print(f"User {user_ip} blocked for abuse.")
         return jsonify({"reply": "Aapka message inappropriate tha, aapko 24 ghante ke liye block kiya gaya hai."}), 403
 
+    # Check request limits
     count = user_request_counts.get(user_ip, 0)
     if count >= USER_REQUEST_LIMIT:
-        return jsonify({"reply": "Aapki daily request limit puri ho gayi hai, kal try karo."}), 429
+        print(f"User {user_ip} exceeded daily limit.")
+        return jsonify({"reply": "Aapki daily request limit puri ho gayi hai, kal fir try karen."}), 429
 
     user_request_counts[user_ip] = count + 1
 
-    message = request.json.get("message", "")
     if not message:
         return jsonify({"reply": "Message bhejna zaroori hai."}), 400
 
@@ -73,10 +81,13 @@ def chat():
 
     response = requests.post(GEMINI_API_URL, headers=headers, json=payload)
     if response.status_code != 200:
+        print(f"Gemini API error for user {user_ip}: {response.status_code}")
         return jsonify({"reply": "Gemini API se error aaya."}), response.status_code
 
     result = response.json()
     reply_text = result.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "Maaf kijiye, jawab nahi mil paaya.")
+
+    print(f"Bot Reply to {user_ip}: {reply_text}")
 
     return jsonify({"reply": reply_text})
 
