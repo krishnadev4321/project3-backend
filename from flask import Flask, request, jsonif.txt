@@ -13,7 +13,7 @@ USER_REQUEST_LIMIT = 20
 user_request_counts = {}
 blocked_ips = {}  # IPs blocked with unblock timestamp
 
-GEMINI_API_KEY = "AIzaSyAH3tgglMcdMcAoKMSllumD1teSvnTuX1Q"
+GEMINI_API_KEY = "AIzaSyBHyiMX-EZwVo4G_NSOGGMu4itjKoguRmA"
 GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={GEMINI_API_KEY}"
 
 # Regex patterns to catch most abusive variations
