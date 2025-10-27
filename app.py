@@ -97,7 +97,7 @@ def chat():
     response = requests.post(GEMINI_API_URL, headers=headers, json=payload)
     if response.status_code != 200:
         print(f"Gemini API error for user {user_ip}: {response.status_code}")
-        return jsonify({"reply": "Gemini API se error aaya."}), response.status_code
+        return jsonify({"reply": "Servers have heavy load ! TRY AGAIN ."}), response.status_code
 
     result = response.json()
     reply_text = result.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "Maaf kijiye, jawab nahi mil paaya.")
@@ -108,3 +108,4 @@ def chat():
 
 if __name__ == '__main__':
     app.run(debug=True)
+    
