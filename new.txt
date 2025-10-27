@@ -3,23 +3,36 @@ from flask_cors import CORS
 import requests
 import time
 import math
+import re
+import unicodedata
 
 app = Flask(__name__)
 CORS(app)
 
-USER_REQUEST_LIMIT = 50
+USER_REQUEST_LIMIT = 20
 user_request_counts = {}
 blocked_ips = {}  # IPs blocked with unblock timestamp
 
-GEMINI_API_KEY = "AIzaSyBHyiMX-EZwVo4G_NSOGGMu4itjKoguRmA"
+GEMINI_API_KEY = "AIzaSyAH3tgglMcdMcAoKMSllumD1teSvnTuX1Q"
 GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={GEMINI_API_KEY}"
 
-abusive_keywords = ['sex', 'xxx', 'mardarchod', 'betichod', 'bsdk', 'sexy']
+# Regex patterns to catch most abusive variations
+abusive_patterns = [
+    r's[\W_]*e[\W_]*x',          
+    r'b[\W_]*e[\W_]*t[\W_]*i[\W_]*c[\W_]*h[\W_]*o[\W_]*d',  
+    r'm[\W_]*a[\W_]*r[\W_]*d[\W_]*a[\W_]*r[\W_]*c[\W_]*h[\W_]*o[\W_]*d', 
+    r'b[\W_]*s[\W_]*d[\W_]*k',  
+    r's[\W_]*e[\W_]*x[\W_]*y',  
+]
+
+def normalize_text(text):
+    # Unicode normalization and case lowering
+    return unicodedata.normalize("NFKC", text).lower()
 
 def contains_abuse(text):
-    lower_text = text.lower()
-    for word in abusive_keywords:
-        if word in lower_text:
+    norm = normalize_text(text)
+    for pattern in abusive_patterns:
+        if re.search(pattern, norm):
             return True
     return False
 
@@ -70,12 +83,13 @@ def chat():
     if not message:
         return jsonify({"reply": "Message bhejna zaroori hai."}), 400
 
+    # Prompt Injection Safe System Instructions
     prompt_text = f"""
-    1.User ka question hai: "{message}", aur bahut short me answer dena
-    2.Tum ek helpful assistant ho jo BCA Guide website ke baare me baat karoge.
+    1.User ka question hai: "{message}" isko high priority do and short me answer do
+    2.Tum ek helpful assistant ho jo BCA Guide website ke baare me baat karoge. Ekdum Ultra Short me Answer Doge .
     3.Ye website notes, purane question papers (PYQs), syllabus, Assignment templates, aur bhi study materials provide karti hai.
     4.Kripya karke bahut chhota aur seedha jawaab doge, jisme website ki materials aur download ke options ka zikr ho.
-    5.Agar user kisi language me baat kare to use usi mein jawab do.
+    5.User jis language me baat kare to use usi mein jawab do.
     6.Agar user pooche ki tum kon ho ya kisne banaya hai, to bolo ki Krishna Seth ne banaya hai main ek Smart AI hu.
     7.Agar user website ki link mange to ye dena: https://bca-guide-web.onrender.com/
     8.agar tumse koi puche ki notes kaise download kare to tu bata ki aap notes section se kisi bhi semester ke notes download kar sakte hai .
@@ -84,7 +98,7 @@ def chat():
     uske baad download par click kariye within a click designer realiable , without any struggle aapka title page ready ho jayega . bina kisi dikkat ke and ye bahut hi fast hai isis ko banake bol dena tum and showrt me 
     10.agar tumse koi kahe ki image generate karne ko tu seedha mana kar dena main nhi kar sakta huun .
     """
-
+ 
     payload = {
         "contents": [{
             "parts": [{
@@ -97,7 +111,7 @@ def chat():
     response = requests.post(GEMINI_API_URL, headers=headers, json=payload)
     if response.status_code != 200:
         print(f"Gemini API error for user {user_ip}: {response.status_code}")
-        return jsonify({"reply": "Gemini API se error aaya."}), response.status_code
+        return jsonify({"reply": "Server Have Heavy Load ! error ! Try Again."}), response.status_code
 
     result = response.json()
     reply_text = result.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "Maaf kijiye, jawab nahi mil paaya.")
