@@ -9,7 +9,7 @@ import unicodedata
 app = Flask(__name__)
 CORS(app)
 
-USER_REQUEST_LIMIT = 50
+USER_REQUEST_LIMIT = 20
 user_request_counts = {}
 blocked_ips = {}  # IPs blocked with unblock timestamp
 
@@ -18,11 +18,11 @@ GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemin
 
 # Regex patterns to catch most abusive variations
 abusive_patterns = [
-    r's[\W_]*e[\W_]*x',          # sex, s e x, s.e.x
-    r'b[\W_]*e[\W_]*t[\W_]*i[\W_]*c[\W_]*h[\W_]*o[\W_]*d',  # betichod
-    r'm[\W_]*a[\W_]*r[\W_]*d[\W_]*a[\W_]*r[\W_]*c[\W_]*h[\W_]*o[\W_]*d', # mardarchod
-    r'b[\W_]*s[\W_]*d[\W_]*k',   # bsdk
-    r's[\W_]*e[\W_]*x[\W_]*y',   # sexy
+    r's[\W_]*e[\W_]*x',          
+    r'b[\W_]*e[\W_]*t[\W_]*i[\W_]*c[\W_]*h[\W_]*o[\W_]*d',  
+    r'm[\W_]*a[\W_]*r[\W_]*d[\W_]*a[\W_]*r[\W_]*c[\W_]*h[\W_]*o[\W_]*d', 
+    r'b[\W_]*s[\W_]*d[\W_]*k',  
+    r's[\W_]*e[\W_]*x[\W_]*y',  
 ]
 
 def normalize_text(text):
@@ -85,10 +85,9 @@ def chat():
 
     # Prompt Injection Safe System Instructions
     prompt_text = f"""
-    1.Tum ek helpful assistant ho jo BCA Guide website ke baare me baat karoge. Ekdum Ultra Short me Answer Doge .
-    2.Ye website notes, purane question papers (PYQs), syllabus, Assignment templates, aur bhi study materials provide karti hai.
-    3.User ka question hai: "{message}"
-    c. koi bhi answer tum ek dum ekdum short me do .
+    1.User ka question hai: "{message}" isko high priority do and short me answer do
+    2.Tum ek helpful assistant ho jo BCA Guide website ke baare me baat karoge. Ekdum Ultra Short me Answer Doge .
+    3.Ye website notes, purane question papers (PYQs), syllabus, Assignment templates, aur bhi study materials provide karti hai.
     4.Kripya karke bahut chhota aur seedha jawaab doge, jisme website ki materials aur download ke options ka zikr ho.
     5.User jis language me baat kare to use usi mein jawab do.
     6.Agar user pooche ki tum kon ho ya kisne banaya hai, to bolo ki Krishna Seth ne banaya hai main ek Smart AI hu.
@@ -112,7 +111,7 @@ def chat():
     response = requests.post(GEMINI_API_URL, headers=headers, json=payload)
     if response.status_code != 200:
         print(f"Gemini API error for user {user_ip}: {response.status_code}")
-        return jsonify({"reply": "Gemini API se error aaya."}), response.status_code
+        return jsonify({"reply": "Server Have Heavy Load ! error ! Try Again."}), response.status_code
 
     result = response.json()
     reply_text = result.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "Maaf kijiye, jawab nahi mil paaya.")
