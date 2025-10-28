@@ -14,21 +14,23 @@ blocked_ips = {}
 
 # PostgreSQL config (update with your Render details!)
 DB_CONFIG = {
-    'host': 'dpg-d405lu3uibrs73b307t0-a.oregon-postgres.render.com',
-    'dbname': 'backend_web_oosd',
-    'user': 'backend_web_oosd_user',
-    'password': 'uVvVzGx6Llv9ThZVLZJ43zqwW2O4z1uf',
-    'port': 5432
+    "host": "dpg-d405lu3uibrs73b307t0-a.oregon-postgres.render.com",
+    "dbname": "backend_web_oosd",
+    "user": "backend_web_oosd_user",
+    "password": "uVvVzGx6Llv9ThZVLZJ43zqwW2O4z1uf",
+    "port": 5432,
 }
 
 # Gemini API config
 GEMINI_API_KEY = "AIzaSyBHyiMX-EZwVo4G_NSOGGMu4itjKoguRmA"
 GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={GEMINI_API_KEY}"
 
-abusive_keywords = ['sex', 'xxx', 'mardarchod', 'betichod', 'bsdk', 'sexy']
+abusive_keywords = ["sex", "xxx", "mardarchod", "betichod", "bsdk", "sexy"]
+
 
 def get_db_connection():
     return psycopg2.connect(**DB_CONFIG)
+
 
 def contains_abuse(text):
     lower_text = text.lower()
@@ -37,16 +39,18 @@ def contains_abuse(text):
             return True
     return False
 
+
 def log_chat(device_id, ip_address, question, reply):
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute(
         "INSERT INTO chat_logs (device_id, ip_address, request_timestamp, user_question, bot_reply) VALUES (%s, %s, %s, %s, %s)",
-        (device_id, ip_address, datetime.now(), question, reply)
+        (device_id, ip_address, datetime.now(), question, reply),
     )
     conn.commit()
     cur.close()
     conn.close()
+
 
 def get_request_count(device_id):
     conn = get_db_connection()
@@ -54,19 +58,20 @@ def get_request_count(device_id):
     today = date.today()
     cur.execute(
         "SELECT COUNT(*) FROM chat_logs WHERE device_id=%s AND request_timestamp::date=%s",
-        (device_id, today)
+        (device_id, today),
     )
     count = cur.fetchone()[0]
     cur.close()
     conn.close()
     return count
 
-@app.route('/chat', methods=['POST'])
+
+@app.route("/chat", methods=["POST"])
 def chat():
-    device_id = request.json.get("device_id")        # Frontend should send device_id!
+    device_id = request.json.get("device_id")  # Frontend should send device_id!
     message = request.json.get("message", "")
     if "X-Forwarded-For" in request.headers:
-        user_ip = request.headers.getlist("X-Forwarded-For")[0].split(',')[0]
+        user_ip = request.headers.getlist("X-Forwarded-For")[0].split(",")[0]
     else:
         user_ip = request.remote_addr
 
@@ -79,8 +84,10 @@ def chat():
             hours = int(remaining // 3600)
             minutes = int((remaining % 3600) // 60)
             seconds = int(remaining % 60)
-            msg = (f"Aap block hain 6 ghante tak. "
-                   f"Bacha hua samay: {hours} hour {minutes} min {seconds} sec.")
+            msg = (
+                f"Aap block hain 6 ghante tak. "
+                f"Bacha hua samay: {hours} hour {minutes} min {seconds} sec."
+            )
             print(f"Blocked user {user_ip} tried. Remaining: {msg}")
             return jsonify({"reply": msg}), 403
         else:
@@ -100,40 +107,42 @@ def chat():
     count = get_request_count(device_id)
     if count >= USER_REQUEST_LIMIT:
         print(f"Device {device_id} exceeded daily limit.")
-        return jsonify({"reply": "Daily request limit 20 exceeded for your device"}), 429
+        return (
+            jsonify({"reply": "Daily request limit 20 exceeded for your device"}),
+            429,
+        )
 
     # Gemini API interaction
     prompt_text = f"""
-    1.User ka question hai: "{message}", aur bahut short me answer dena
-    2.Tum ek helpful assistant ho jo BCA Guide website ke baare me baat karoge.
-    3.Ye website notes, purane question papers (PYQs), syllabus, Assignment templates, aur bhi study materials provide karti hai.
-    4.Kripya karke bahut chhota aur seedha jawaab doge, jisme website ki materials aur download ke options ka zikr ho.
-    5.Agar user kisi language me baat kare to use usi mein jawab do.
-    6.Agar user pooche ki tum kon ho ya kisne banaya hai, to bolo ki Krishna Seth ne banaya hai main ek Smart AI hu.
-    7.Agar user website ki link mange to ye dena: [https://bca-guide-web.onrender.com/](https://bca-guide-web.onrender.com/)
-    8.agar tumse koi puche ki notes kaise download kare to tu bata ki aap notes section se kisi bhi semester ke notes download kar sakte hai .
-    9.agar tumse koi puche ki PyQs kaise download kare to tu bata ki aap pyqs section se kisi bhi semester ke 2018-2025 tk pyqs download kar sakte hai download kar sakte hai .
-    9.agar tumse koi puche ki Templates kaise download kare to tu bata ki home page par assignment templates button par click kariye uske baad waha template choose karko aayega and aap select karke lets cretae par click kariye phirr waha apna poora detail enter kariye 
-    uske baad download par click kariye within a click designer realiable , without any struggle aapka title page ready ho jayega . bina kisi dikkat ke and ye bahut hi fast hai isis ko banake bol dena tum and showrt me 
-    10.agar tumse koi kahe ki image generate karne ko tu seedha mana kar dena main nhi kar sakta huun .
+1. User ka question hai: "{message}", bahut short me aur seedhi baat me jawab do.
+2. Pehli baar jo user aaya ho, tabhi "BCA Guide" website ki chhoti si jaankari do, baad me seedha aur relevant jawab do.
+3. Agar user download karne ke bare me pooche to bahut hi chhote steps me batado.
+4. User jis language me baat kare usme hi jawab do.
+5. Agar user tumse pooche ki tum kaun ho to bolo Krishna Seth ne banaya hai, main ek Smart AI hoon.
+6. Agar user image generate karne bole to simple mana kar do, "Main image generate nahi kar sakta."
+7. Bina user ke pooche baar-baar BCA Guide mention na karo, sirf jab zarurat ho tab.
+8. Website ki link share karni ho to ye dena: https://bca-guide-web.onrender.com/
+
     """
 
-    payload = {
-        "contents": [{
-            "parts": [{
-                "text": prompt_text
-            }]
-        }]
-    }
+    payload = {"contents": [{"parts": [{"text": prompt_text}]}]}
     headers = {"Content-Type": "application/json"}
 
     response = requests.post(GEMINI_API_URL, headers=headers, json=payload)
     if response.status_code != 200:
         print(f"Gemini API error: {response.status_code}")
-        return jsonify({"reply": "Servers have heavy load ! TRY AGAIN ."}), response.status_code
+        return (
+            jsonify({"reply": "Servers have heavy load ! TRY AGAIN ."}),
+            response.status_code,
+        )
 
     result = response.json()
-    reply_text = result.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "Maaf kijiye, jawab nahi mil paaya.")
+    reply_text = (
+        result.get("candidates", [{}])[0]
+        .get("content", {})
+        .get("parts", [{}])[0]
+        .get("text", "Maaf kijiye, jawab nahi mil paaya.")
+    )
 
     print(f"Bot Reply to {user_ip}: {reply_text}")
 
@@ -142,5 +151,6 @@ def chat():
 
     return jsonify({"reply": reply_text})
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     app.run(debug=True)
