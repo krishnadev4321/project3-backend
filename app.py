@@ -42,15 +42,19 @@ def contains_abuse(text):
 
 
 def log_chat(device_id, ip_address, question, reply):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute(
-        "INSERT INTO chat_logs (device_id, ip_address, request_timestamp, user_question, bot_reply) VALUES (%s, %s, %s, %s, %s)",
-        (device_id, ip_address, datetime.now(), question, reply),
-    )
-    conn.commit()
-    cur.close()
-    conn.close()
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO chat_logs (device_id, ip_address, request_timestamp, user_question, bot_reply) VALUES (%s, %s, %s, %s, %s)",
+            (device_id, ip_address, datetime.now(), question, reply),
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
+        print("Successfully logged chat to database")
+    except Exception as e:
+        print("Database log error:", e)
 
 
 def get_request_count(device_id):
