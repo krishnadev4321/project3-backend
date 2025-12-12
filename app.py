@@ -13,13 +13,9 @@ USER_REQUEST_LIMIT = 20
 blocked_ips = {}
 user_first_interaction = {}  # Track pehle interaction ke liye
 
-# PostgreSQL config (update with your Render details!)
+# PostgreSQL config (Neon)
 DB_CONFIG = {
-    "host": "dpg-d405lu3uibrs73b307t0-a.oregon-postgres.render.com",
-    "dbname": "backend_web_oosd",
-    "user": "backend_web_oosd_user",
-    "password": "uVvVzGx6Llv9ThZVLZJ43zqwW2O4z1uf",
-    "port": 5432,
+    "conn_str": "postgresql://neondb_owner:npg_WU7Lgklf1EiP@ep-autumn-tree-ahcwcxfv-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require"
 }
 
 # Gemini API config
@@ -30,7 +26,8 @@ abusive_keywords = ["sex", "xxx", "mardarchod", "betichod", "bsdk", "sexy"]
 
 
 def get_db_connection():
-    return psycopg2.connect(**DB_CONFIG)
+    # Neon connection via full conn string (SSL required)
+    return psycopg2.connect(DB_CONFIG["conn_str"])
 
 
 def contains_abuse(text):
@@ -130,10 +127,12 @@ def chat():
 5. If the user asks who you are, say Krishna Seth made me, I am a Smart AI.
 6. If the user asks to generate an image, politely decline: "I cannot generate images."
 7. Do not repeatedly mention BCA Guide unless the user asks or it is necessary.
-8. If you need to share the website link, give this: [https://bca-guide-web.onrender.com/](https://bca-guide-web.onrender.com/)
+8. If you need to share the website link, give this: [https://bca-guide-web.onrender.com/]
 9. If a user asks "Where can I get templates?", you can respond with these steps in user language:
 "Go to the website. On the home page, click on the 'Assignment Templates' button. Then select the template you want, fill in the required details, and click on 'Download'. Within seconds, your template will be ready."
 """
+
+
 
     payload = {"contents": [{"parts": [{"text": prompt_text}]}]}
     headers = {"Content-Type": "application/json"}
@@ -156,6 +155,7 @@ def chat():
     log_chat(device_id, user_ip, message, reply_text)
 
     return jsonify({"reply": reply_text})
+
 
 if __name__ == "__main__":
     app.run(debug=True)
