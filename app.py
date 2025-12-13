@@ -5,22 +5,27 @@ import time
 import psycopg2
 from datetime import datetime, date
 
+
 app = Flask(__name__)
 CORS(app)
+
 
 # Per device per day request limit
 USER_REQUEST_LIMIT = 20
 blocked_ips = {}
 user_first_interaction = {}  # Track pehle interaction ke liye
 
+
 # PostgreSQL config (Neon)
 DB_CONFIG = {
     "conn_str": "postgresql://neondb_owner:npg_WU7Lgklf1EiP@ep-autumn-tree-ahcwcxfv-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require"
 }
 
+
 # Gemini API config
 GEMINI_API_KEY = "AIzaSyBHyiMX-EZwVo4G_NSOGGMu4itjKoguRmA"
 GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={GEMINI_API_KEY}"
+
 
 abusive_keywords = ["sex", "xxx", "mardarchod", "betichod", "bsdk", "sexy"]
 
@@ -127,17 +132,17 @@ def chat():
 5. If the user asks who you are, say Krishna Seth made me, I am a Smart AI.
 6. If the user asks to generate an image, politely decline: "I cannot generate images."
 7. Do not repeatedly mention BCA Guide unless the user asks or it is necessary.
-8. If you need to share the website link, give this: [https://bca-guide-web.onrender.com/]
+8. If you need to share the website link, give this: [https://bca-guide-web.onrender.com/](https://bca-guide-web.onrender.com/)
 9. If a user asks "Where can I get templates?", you can respond with these steps in user language:
 "Go to the website. On the home page, click on the 'Assignment Templates' button. Then select the template you want, fill in the required details, and click on 'Download'. Within seconds, your template will be ready."
 """
-
-
 
     payload = {"contents": [{"parts": [{"text": prompt_text}]}]}
     headers = {"Content-Type": "application/json"}
 
     response = requests.post(GEMINI_API_URL, headers=headers, json=payload)
+    print("Gemini raw response:", response.text)  # debug line to see exact 403 reason
+
     if response.status_code != 200:
         print(f"Gemini API error: {response.status_code}")
         return jsonify({"reply": "Servers have heavy load ! TRY AGAIN ."}), response.status_code
