@@ -23,7 +23,7 @@ DB_CONFIG = {
 
 
 # Gemini API config
-GEMINI_API_KEY = "AIzaSyBHyiMX-EZwVo4G_NSOGGMu4itjKoguRmA"
+GEMINI_API_KEY = "AIzaSyBcwn_nDrOIp-whw3OaOsWD5gwhiKSg9eE"
 GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={GEMINI_API_KEY}"
 
 
