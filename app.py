@@ -75,21 +75,21 @@ def get_predefined_reply(message):
 
     replies = {
 
-        "1": "Aap Notes section me jaakar BCA ke sabhi notes download kar sakte hain:\nhttps://bca-guide-web.onrender.com/notes",
+        "1": "Aap Home Page par Notes section me jaakar BCA ke sabhi notes download kar sakte hain:\nhttps://bca-guide-web.onrender.com",
 
-        "2": "Aap Syllabus section me jaakar BCA ka latest syllabus dekh sakte hain:\nhttps://bca-guide-web.onrender.com/syllabus",
+        "2": "Aap Home Page par Syllabus section me jaakar BCA ka latest syllabus dekh sakte hain:\nhttps://bca-guide-web.onrender.com",
 
-        "3": "Previous year question papers yaha se download karein:\nhttps://bca-guide-web.onrender.com/papers",
+        "3": "Aap Home Page par Previous year question papers yaha se download karein:\nhttps://bca-guide-web.onrender.com",
 
         "4": "Assignment Templates ke liye website ke Home page par 'Assignment Templates' button par click karein.",
 
-        "5": "About Us section me website aur creator ke baare me details mil jayengi:\nhttps://bca-guide-web.onrender.com/about",
+        "5": "Aap Home Page par About Us section me website aur creator ke baare me details mil jayengi:\nhttps://bca-guide-web.onrender.com",
 
-        "6": "Useful Links section me BCA ke important resources diye gaye hain."
+        "6": "Aap Home Page par Useful Links section me BCA se related and MGKVP ke important links diye gaye hain."
 
     }
 
-    return replies.get(message.strip(), "Kripya valid option select karein (1-6).")
+    return replies.get(message.strip(), "Please select Valid Option From 1 to 6.")
 
 
 @app.route("/chat", methods=["POST"])
