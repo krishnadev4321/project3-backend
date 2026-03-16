@@ -1,37 +1,27 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import requests
 import time
 import psycopg2
 from datetime import datetime, date
 
-
 app = Flask(__name__)
 CORS(app)
-
 
 # Per device per day request limit
 USER_REQUEST_LIMIT = 20
 blocked_ips = {}
-user_first_interaction = {}  # Track pehle interaction ke liye
-
+user_first_interaction = {}
 
 # PostgreSQL config (Neon)
 DB_CONFIG = {
     "conn_str": "postgresql://neondb_owner:npg_WU7Lgklf1EiP@ep-autumn-tree-ahcwcxfv-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require"
 }
 
-
-# Gemini API config
-GEMINI_API_KEY = "AIzaSyBcwn_nDrOIp-whw3OaOsWD5gwhiKSg9eE"
-GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={GEMINI_API_KEY}"
-
-
+# abusive words
 abusive_keywords = ["sex", "xxx", "mardarchod", "betichod", "bsdk", "sexy"]
 
 
 def get_db_connection():
-    # Neon connection via full conn string (SSL required)
     return psycopg2.connect(DB_CONFIG["conn_str"])
 
 
@@ -47,14 +37,16 @@ def log_chat(device_id, ip_address, question, reply):
     try:
         conn = get_db_connection()
         cur = conn.cursor()
+
         cur.execute(
-            "INSERT INTO chat_logs (device_id, ip_address, request_timestamp, user_question, bot_reply) VALUES (%s, %s, %s, %s, %s)",
-            (device_id, ip_address, datetime.now(), question, reply),
+            "INSERT INTO chat_logs (device_id, ip_address, request_timestamp, user_question, bot_reply) VALUES (%s,%s,%s,%s,%s)",
+            (device_id, ip_address, datetime.now(), question, reply)
         )
+
         conn.commit()
         cur.close()
         conn.close()
-        print("Successfully logged chat to database")
+
     except Exception as e:
         print("Database log error:", e)
 
@@ -62,21 +54,50 @@ def log_chat(device_id, ip_address, question, reply):
 def get_request_count(device_id):
     conn = get_db_connection()
     cur = conn.cursor()
+
     today = date.today()
+
     cur.execute(
         "SELECT COUNT(*) FROM chat_logs WHERE device_id=%s AND request_timestamp::date=%s",
-        (device_id, today),
+        (device_id, today)
     )
+
     count = cur.fetchone()[0]
+
     cur.close()
     conn.close()
+
     return count
+
+
+# PREDEFINED RESPONSES
+def get_predefined_reply(message):
+
+    replies = {
+
+        "1": "Aap Notes section me jaakar BCA ke sabhi notes download kar sakte hain:\nhttps://bca-guide-web.onrender.com/notes",
+
+        "2": "Aap Syllabus section me jaakar BCA ka latest syllabus dekh sakte hain:\nhttps://bca-guide-web.onrender.com/syllabus",
+
+        "3": "Previous year question papers yaha se download karein:\nhttps://bca-guide-web.onrender.com/papers",
+
+        "4": "Assignment Templates ke liye website ke Home page par 'Assignment Templates' button par click karein.",
+
+        "5": "About Us section me website aur creator ke baare me details mil jayengi:\nhttps://bca-guide-web.onrender.com/about",
+
+        "6": "Useful Links section me BCA ke important resources diye gaye hain."
+
+    }
+
+    return replies.get(message.strip(), "Kripya valid option select karein (1-6).")
 
 
 @app.route("/chat", methods=["POST"])
 def chat():
+
     device_id = request.json.get("device_id")
     message = request.json.get("message", "")
+
     if "X-Forwarded-For" in request.headers:
         user_ip = request.headers.getlist("X-Forwarded-For")[0].split(",")[0]
     else:
@@ -86,78 +107,64 @@ def chat():
 
     # Blocked IP logic
     if user_ip in blocked_ips:
+
         remaining = blocked_ips[user_ip] - time.time()
+
         if remaining > 0:
+
             hours = int(remaining // 3600)
             minutes = int((remaining % 3600) // 60)
             seconds = int(remaining % 60)
-            msg = (
-                f"Aap block hain 6 ghante tak. "
-                f"Bacha hua samay: {hours} hour {minutes} min {seconds} sec."
-            )
-            print(f"Blocked user {user_ip} tried. Remaining: {msg}")
+
+            msg = f"Aap block hain 6 ghante tak. Remaining time: {hours}h {minutes}m {seconds}s"
+
             return jsonify({"reply": msg}), 403
+
         else:
             del blocked_ips[user_ip]
 
+    # Abuse check
     if contains_abuse(message):
+
         blocked_ips[user_ip] = time.time() + 21600
-        print(f"User {user_ip} blocked for abuse.")
-        msg = "Aapka message inappropriate tha, aapko 6 ghante ke liye block kiya gaya hai. Remaining Time: 6 hour 0 min 0 sec."
-        return jsonify({"reply": msg}), 403
+
+        return jsonify({
+            "reply": "Aapka message inappropriate tha. Aapko 6 ghante ke liye block kiya gaya hai."
+        }), 403
 
     if not message or not device_id:
-        print(f"User IP: {user_ip}, Device ID: {device_id}, Empty message or missing device_id.")
-        return jsonify({"reply": "Message aur device_id bhejna zaroori hai."}), 400
 
+        return jsonify({
+            "reply": "Message aur device_id bhejna zaroori hai."
+        }), 400
+
+    # Request limit check
     count = get_request_count(device_id)
+
     if count >= USER_REQUEST_LIMIT:
-        print(f"Device {device_id} exceeded daily limit.")
-        return jsonify({"reply": "Daily request limit 20 exceeded for your device"}), 429
 
-    # First time user welcome logic
-    is_first = device_id not in user_first_interaction
-    if is_first:
+        return jsonify({
+            "reply": "Daily request limit 20 exceeded for your device"
+        }), 429
+
+    # First time welcome
+    if device_id not in user_first_interaction:
+
         user_first_interaction[device_id] = True
-        welcome_text = "BCA Guide me aapka swagat hai!"
-        print(f"User IP: {user_ip}, Device ID: {device_id}, First interaction welcome message sent.")
+
+        welcome = "BCA Guide me aapka swagat hai!\n\n"
+
     else:
-        welcome_text = ""
 
-    prompt_text = f"""
-1. The user's question is: "{message}". Provide a very short and direct answer.
-2. If this is the user's first time, first give this information: '{welcome_text}', otherwise give a direct answer.
-3. If the user asks about how to download, explain the steps very briefly.
-4. Answer in the same language the user uses.
-5. If the user asks who you are, say Krishna Seth made me, I am a Smart AI.
-6. If the user asks to generate an image, politely decline: "I cannot generate images."
-7. Do not repeatedly mention BCA Guide unless the user asks or it is necessary.
-8. If you need to share the website link, give this: [https://bca-guide-web.onrender.com/](https://bca-guide-web.onrender.com/)
-9. If a user asks "Where can I get templates?", you can respond with these steps in user language:
-"Go to the website. On the home page, click on the 'Assignment Templates' button. Then select the template you want, fill in the required details, and click on 'Download'. Within seconds, your template will be ready."
-"""
+        welcome = ""
 
-    payload = {"contents": [{"parts": [{"text": prompt_text}]}]}
-    headers = {"Content-Type": "application/json"}
+    # Predefined reply
+    reply_text = welcome + get_predefined_reply(message)
 
-    response = requests.post(GEMINI_API_URL, headers=headers, json=payload)
-    print("Gemini raw response:", response.text)  # debug line to see exact 403 reason
-
-    if response.status_code != 200:
-        print(f"Gemini API error: {response.status_code}")
-        return jsonify({"reply": "Servers have heavy load ! TRY AGAIN ."}), response.status_code
-
-    result = response.json()
-    reply_text = (
-        result.get("candidates", [{}])[0]
-        .get("content", {})
-        .get("parts", [{}])[0]
-        .get("text", "Maaf kijiye, jawab nahi mil paaya.")
-    )
+    # Log chat
+    log_chat(device_id, user_ip, message, reply_text)
 
     print(f"User question: {message}, Bot reply: {reply_text}")
-
-    log_chat(device_id, user_ip, message, reply_text)
 
     return jsonify({"reply": reply_text})
 
